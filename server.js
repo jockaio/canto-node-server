@@ -6,6 +6,7 @@ const jwt = require('express-jwt');
 const jwks = require('jwks-rsa');
 const cors = require('cors');
 const bodyParser = require('body-parser');
+const port = process.env.PORT || 3333;
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -85,5 +86,5 @@ app.get('/api/jokes/celebrity', authCheck, (req,res) => {
   res.json(CelebrityJokes);
 })
 
-app.listen(3333);
+app.listen(port);
 console.log('Listening on localhost:3333');
