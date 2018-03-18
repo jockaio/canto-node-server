@@ -6,6 +6,10 @@ const jwt = require('express-jwt');
 const jwks = require('jwks-rsa');
 const cors = require('cors');
 const bodyParser = require('body-parser');
+const TranslationHandler = require('./translationHandler');
+const translationHandler = new TranslationHandler();
+const db = require('./storage');
+const Op = db.Sequelize.Op;
 const port = process.env.PORT || 3333;
 
 app.use(bodyParser.json());
@@ -18,73 +22,56 @@ const authCheck = jwt({
         rateLimit: true,
         jwksRequestsPerMinute: 5,
         // YOUR-AUTH0-DOMAIN name e.g https://prosper.auth0.com
-        jwksUri: "{YOUR-AUTH0-DOMAIN}/.well-known/jwks.json"
+        jwksUri: process.env.JWKSURI
     }),
     // This is the identifier we set when we created the API
-    audience: '{YOUR-API-AUDIENCE-ATTRIBUTE}',
-    issuer: '{YOUR-AUTH0-DOMAIN}',
+    audience: process.env.AUDIENCE,
+    issuer: process.env.ISSUER,
     algorithms: ['RS256']
 });
 
-app.get('/api/jokes/food', (req, res) => {
-  let foodJokes = [
-  {
-    id: 99991,
-    joke: "When Chuck Norris was a baby, he didn't suck his mother's breast. His mother served him whiskey, straight out of the bottle."
-  },
-  {
-    id: 99992,
-    joke: 'When Chuck Norris makes a burrito, its main ingredient is real toes.'
-  },
-  {
-    id: 99993,
-    joke: 'Chuck Norris eats steak for every single meal. Most times he forgets to kill the cow.'
-  },
-  {
-    id: 99994,
-    joke: "Chuck Norris doesn't believe in ravioli. He stuffs a live turtle with beef and smothers it in pig's blood."
-  },
-  {
-    id: 99995,
-    joke: "Chuck Norris recently had the idea to sell his urine as a canned beverage. We know this beverage as Red Bull."
-  },
-  {
-    id: 99996,
-    joke: 'When Chuck Norris goes to out to eat, he orders a whole chicken, but he only eats its soul.'
-  }
-  ];
-  res.json(foodJokes);
-})
+app.get('/api/userprofile', authCheck, (req,res) => {
+    console.log(JSON.stringify(req.user, null, '  '));
+});
 
-app.get('/api/jokes/celebrity', authCheck, (req,res) => {
-  let CelebrityJokes = [
-  {
-    id: 88881,
-    joke: 'As President Roosevelt said: "We have nothing to fear but fear itself. And Chuck Norris."'
-  },
-  {
-    id: 88882,
-    joke: "Chuck Norris only let's Charlie Sheen think he is winning. Chuck won a long time ago."
-  },
-  {
-    id: 88883,
-    joke: 'Everything King Midas touches turnes to gold. Everything Chuck Norris touches turns up dead.'
-  },
-  {
-    id: 88884,
-    joke: 'Each time you rate this, Chuck Norris hits Obama with Charlie Sheen and says, "Who is winning now?!"'
-  },
-  {
-    id: 88885,
-    joke: "For Charlie Sheen winning is just wishful thinking. For Chuck Norris it's a way of life."
-  },
-  {
-    id: 88886,
-    joke: "Hellen Keller's favorite color is Chuck Norris."
+app.get('/api/translation', (req, res) => {
+    console.log(req.query.queryString);
+    let result = translationHandler.translate(req.query.queryString);
+    res.json(result);
+});
+
+app.get('/api/dbConnection', authCheck, (req, res) => {
+    db.Word.sync().then(() => {
+      console.log('Word table created.');
+    }).catch(() => {
+      console.log('Something went wrong yo.')
+    });
+    res.send();
+});
+
+app.get('/api/word', authCheck, (req, res) => {
+  console.log(req.query.queryString);
+  if(req.query.queryString !== 'undefined'){
+    db.Word.findAll({
+      where: {
+        item: {
+          [Op.like] : '%'+req.query.queryString+'%'
+        }
+      }
+    }).then((word) => {
+      res.json(word);
+    }).catch((e) => {
+      console.log(e);
+      res.send();
+    });
+  }else{
+    db.Word.findAll().then((word) => { res.json(word)})
+    .catch((e) => {
+      console.log(e);
+      req.send();
+    });
   }
-  ];
-  res.json(CelebrityJokes);
-})
+});
+
 
 app.listen(port);
-console.log('Listening on localhost:3333');
