@@ -1,3 +1,4 @@
+require('dotenv').config();
 const Sequelize = require('sequelize');
 const sequelizeConnection = new Sequelize(process.env.DBNAME, process.env.DBUSER, process.env.DBPASSWORD, {
     host: process.env.DBHOST,
@@ -10,6 +11,8 @@ const sequelizeConnection = new Sequelize(process.env.DBNAME, process.env.DBUSER
         idle: 10000
     }
 });
+
+console.log(process.env.DBNAME);
 
 const db = {
     Sequelize: Sequelize,
